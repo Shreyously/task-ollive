@@ -59,6 +59,9 @@ Services:
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 
+Prisma note:
+- Prisma commands in `apps/api` read `apps/api/.env` for `DATABASE_URL`.
+
 ## Root Scripts
 
 - `npm run dev`

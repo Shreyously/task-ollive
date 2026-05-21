@@ -6,6 +6,6 @@ export class ProviderSelectionDto {
   provider!: 'google' | 'groq';
 
   @IsString()
+  @IsIn(['gemini-2.0-flash', 'llama-3.3-70b', 'gemma2-9b'])
   model!: string;
 }
-

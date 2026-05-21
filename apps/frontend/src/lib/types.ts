@@ -4,7 +4,9 @@ export type ModelId = 'gemini-2.0-flash' | 'llama-3.3-70b' | 'gemma2-9b';
 
 export interface ConversationItem {
   id: string;
+  sessionId: string;
   title: string;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -22,4 +24,13 @@ export interface DashboardSummary {
   errorRate: number;
   p95LatencyMs: number;
   avgTokens: number;
+}
+
+export interface ApiResponse<T> {
+  data: T;
+  meta?: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
 }

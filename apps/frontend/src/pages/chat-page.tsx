@@ -4,7 +4,7 @@ import { ChatPanel } from '../components/chat/chat-panel';
 import { ConversationSidebar } from '../components/chat/conversation-sidebar';
 import { ProviderModelSelector } from '../components/chat/provider-model-selector';
 import { ErrorState, LoadingState } from '../components/common/state';
-import { useConversations, useMessages, useSendMessage } from '../hooks/use-chat-data';
+import { useConversations, useCreateConversation, useMessages, useSendMessage } from '../hooks/use-chat-data';
 import { useSessionId } from '../hooks/use-session-id';
 import type { ModelId, ProviderId } from '../lib/types';
 
@@ -14,6 +14,7 @@ export function ChatPage() {
   const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const conversationsQuery = useConversations(sessionId);
   const conversations = conversationsQuery.data ?? [];
+  const createConversationMutation = useCreateConversation(sessionId);
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
@@ -28,19 +29,35 @@ export function ChatPage() {
     if (provider === 'groq' && model === 'gemini-2.0-flash') setModel('llama-3.3-70b');
   }, [provider, model]);
 
-  const messagesQuery = useMessages(selectedConversationId);
+  const messagesQuery = useMessages(selectedConversationId, sessionId);
   const sendMutation = useSendMessage();
 
   const messages = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
 
+  const onCreateConversation = () => {
+    createConversationMutation.mutate(
+      { title: 'New conversation' },
+      {
+        onSuccess: (createdConversation) => {
+          setSelectedConversationId(createdConversation.id);
+        },
+      },
+    );
+  };
+
   const onSend = (content: string) => {
-    if (!selectedConversationId) return;
     sendMutation.mutate({
       sessionId,
-      conversationId: selectedConversationId,
+      conversationId: selectedConversationId ?? undefined,
       content,
       provider,
       model,
+    }, {
+      onSuccess: (response) => {
+        if (response.conversationId) {
+          setSelectedConversationId(response.conversationId);
+        }
+      },
     });
   };
 
@@ -53,6 +70,8 @@ export function ChatPage() {
         conversations={conversations}
         selectedId={selectedConversationId}
         onSelect={setSelectedConversationId}
+        onCreate={onCreateConversation}
+        creating={createConversationMutation.isPending}
       />
       <div className="space-y-3">
         <ProviderModelSelector

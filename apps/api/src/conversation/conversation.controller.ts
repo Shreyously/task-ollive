@@ -1,15 +1,23 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
 
+import { CreateConversationDto } from './dto/create-conversation.dto.js';
 import { ListConversationsQueryDto } from './dto/list-conversations-query.dto.js';
 import { ConversationService } from './conversation.service.js';
 
 @Controller('conversations')
 export class ConversationController {
-  constructor(private readonly conversationService: ConversationService) {}
+  constructor(
+    @Inject(ConversationService)
+    private readonly conversationService: ConversationService,
+  ) {}
+
+  @Post()
+  create(@Body() dto: CreateConversationDto) {
+    return this.conversationService.create(dto);
+  }
 
   @Get()
   list(@Query() query: ListConversationsQueryDto) {
     return this.conversationService.list(query);
   }
 }
-

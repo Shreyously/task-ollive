@@ -4,12 +4,30 @@ interface ConversationSidebarProps {
   conversations: ConversationItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onCreate: () => void;
+  creating?: boolean;
 }
 
-export function ConversationSidebar({ conversations, selectedId, onSelect }: ConversationSidebarProps) {
+export function ConversationSidebar({
+  conversations,
+  selectedId,
+  onSelect,
+  onCreate,
+  creating = false,
+}: ConversationSidebarProps) {
   return (
     <aside className="h-full rounded-lg border border-app-border bg-app-panel p-3">
-      <h2 className="mb-3 text-sm font-semibold text-slate-200">Conversations</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-200">Conversations</h2>
+        <button
+          type="button"
+          onClick={onCreate}
+          disabled={creating}
+          className="rounded-md border border-app-border bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+        >
+          {creating ? '...' : 'New'}
+        </button>
+      </div>
       <div className="space-y-2">
         {conversations.map((conversation) => {
           const active = selectedId === conversation.id;

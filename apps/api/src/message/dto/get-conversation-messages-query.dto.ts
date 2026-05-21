@@ -1,11 +1,13 @@
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsInt, Max, Min } from 'class-validator';
 
-export class ListMessagesQueryDto {
+export class GetConversationMessagesQueryDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  @MaxLength(64)
-  conversationId!: string;
+  @MaxLength(128)
+  sessionId?: string;
 
   @IsOptional()
   @Type(() => Number)

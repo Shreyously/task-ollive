@@ -10,6 +10,22 @@ export class ApiClient {
   get baseUrl(): string {
     return this.config.baseUrl ?? BASE_URL;
   }
+
+  async request<T>(path: string, init?: RequestInit): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    return (await response.json()) as T;
+  }
 }
 
 export const apiClient = new ApiClient();

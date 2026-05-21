@@ -6,6 +6,7 @@ import {
 import type { Request, Response } from 'express';
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 
+import { serializeError } from '../logging/error-serializer.js';
 import { AppLogger } from '../logging/logger.service.js';
 
 @Catch()
@@ -30,7 +31,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         method: request.method,
         path: request.url,
         statusCode: status,
-        error: exception,
+        error: serializeError(exception),
       },
       'http.exception',
     );

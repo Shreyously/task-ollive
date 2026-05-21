@@ -50,13 +50,13 @@ services:
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'
     command: >
-      sh -lc "npm install && npm run dev --workspace @repo/api"
+      sh -lc "npm install && npm run prisma:generate --workspace @repo/api && npm run prisma:migrate:deploy --workspace @repo/api && npm run dev --workspace @repo/api"
     working_dir: /workspace
     ports:
       - '${API_PORT:-3001}:3001'
     volumes:
       - ./:/workspace
-      - root_node_modules:/workspace/node_modules
+      - api_node_modules:/workspace/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,7 +89,7 @@ services:
     working_dir: /workspace
     volumes:
       - ./:/workspace
-      - root_node_modules:/workspace/node_modules
+      - worker_node_modules:/workspace/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -125,7 +125,7 @@ services:
       - '${FRONTEND_PORT:-5173}:5173'
     volumes:
       - ./:/workspace
-      - root_node_modules:/workspace/node_modules
+      - frontend_node_modules:/workspace/node_modules
     depends_on:
       api:
         condition: service_healthy
@@ -139,7 +139,9 @@ services:
 
 volumes:
   postgres_data:
-  root_node_modules:
+  api_node_modules:
+  worker_node_modules:
+  frontend_node_modules:
 
 networks:
   app_net:

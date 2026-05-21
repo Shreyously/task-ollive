@@ -1,0 +1,12 @@
+{
+  "extends": "./tooling/tsconfig/base.json",
+  "files": [],
+  "references": [
+    { "path": "./packages/shared-types" },
+    { "path": "./packages/inference-sdk" },
+    { "path": "./apps/api" },
+    { "path": "./apps/worker" },
+    { "path": "./apps/frontend" }
+  ]
+}
+

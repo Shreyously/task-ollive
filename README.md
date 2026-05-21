@@ -42,6 +42,23 @@ tooling/
    npm run dev
    ```
 
+## Docker Compose (Full Stack)
+
+1. Create local env file:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+2. Boot full stack:
+   ```powershell
+   docker compose up
+   ```
+
+Services:
+- Frontend: `http://localhost:5173`
+- API: `http://localhost:3001`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+
 ## Root Scripts
 
 - `npm run dev`
@@ -63,4 +80,3 @@ tooling/
 - Add BullMQ producers in API and consumers in worker.
 - Add shared event contracts + correlation IDs in `packages/shared-types`.
 - Add provider router boundaries in API and ingestion SDK hooks.
-

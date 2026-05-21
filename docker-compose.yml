@@ -1,28 +1,146 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: llm-obs-postgres
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: llm_obs
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-llm_obs}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-llm_obs}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - app_net
 
   redis:
     image: redis:7-alpine
     container_name: llm-obs-redis
-    restart: always
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks:
+      - app_net
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile.dev
+    container_name: llm-obs-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      API_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-llm_obs}
+      REDIS_URL: redis://redis:6379
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    command: >
+      sh -lc "npm install && npm run dev --workspace @repo/api"
+    working_dir: /workspace
+    ports:
+      - '${API_PORT:-3001}:3001'
     volumes:
-      - redis_data:/data
+      - ./:/workspace
+      - root_node_modules:/workspace/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'ps -o comm= 1 | grep -q node']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - app_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile.dev
+    container_name: llm-obs-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-llm_obs}
+      REDIS_URL: redis://redis:6379
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    command: >
+      sh -lc "npm install && npm run dev --workspace @repo/worker"
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - root_node_modules:/workspace/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'ps -o comm= 1 | grep -q node']
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    networks:
+      - app_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile.dev
+    container_name: llm-obs-frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3001}
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    command: >
+      sh -lc "npm install && npm run dev --workspace @repo/frontend -- --host 0.0.0.0 --port ${FRONTEND_PORT:-5173}"
+    working_dir: /workspace
+    ports:
+      - '${FRONTEND_PORT:-5173}:5173'
+    volumes:
+      - ./:/workspace
+      - root_node_modules:/workspace/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'ps -o comm= 1 | grep -q node']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - app_net
 
 volumes:
   postgres_data:
-  redis_data:
+  root_node_modules:
+
+networks:
+  app_net:
+    driver: bridge

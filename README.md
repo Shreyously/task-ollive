@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/google/material-design-icons/master/png/action/visibility/xxhdpi.png" width="100" height="100" alt="Ollive Logo" />
   
   # Ollive LLM Observability Platform
 

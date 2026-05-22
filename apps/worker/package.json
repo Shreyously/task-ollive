@@ -10,6 +10,7 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "prisma:generate": "prisma generate --schema=../api/prisma/schema.prisma",
+    "test": "tsx --test src/sanitizer/sanitizer.service.spec.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

@@ -65,6 +65,8 @@ model InferenceLog {
   status              InferenceStatus
   errorCode           String?
   errorMessage        String?
+  inputPreview        String?
+  outputPreview       String?
   latencyMs           Int
   promptTokens        Int?
   completionTokens    Int?

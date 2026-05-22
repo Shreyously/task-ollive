@@ -7,6 +7,7 @@ import { Job } from 'bullmq';
 
 import { WorkerLogger } from '../common/logger.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SanitizerService } from '../sanitizer/sanitizer.service.js';
 import { DeadLetterService } from './dead-letter.service.js';
 import { ValidationService } from './validation.service.js';
 
@@ -37,12 +38,14 @@ export class InferenceProcessor extends WorkerHost {
     private readonly dlqService: DeadLetterService,
     @Inject(ConfigService)
     private readonly configService: ConfigService,
+    @Inject(SanitizerService)
+    private readonly sanitizerService: SanitizerService,
   ) {
     super();
   }
 
   async process(job: Job): Promise<void> {
-    const correlationId = job.data?.correlationId;
+    const correlationId = (job.data as Record<string, unknown> | undefined)?.correlationId as string | undefined;
     const jobLogger = this.logger.child({
       jobId: job.id,
       correlationId,
@@ -57,32 +60,54 @@ export class InferenceProcessor extends WorkerHost {
     const envelope = await this.validationService.validate(job.data);
     const event = envelope.payload;
 
+    // 1.5. Create a sanitized copy of event payload to avoid direct mutation
+    const sanitizedError = event.error
+      ? {
+          ...event.error,
+          message: this.sanitizerService.sanitize(event.error.message) ?? '',
+          stack: event.error.stack ? this.sanitizerService.sanitize(event.error.stack) ?? undefined : undefined,
+        }
+      : undefined;
+
+    const sanitizedEvent = {
+      ...event,
+      error: sanitizedError,
+      inputPreview: event.inputPreview
+        ? this.sanitizerService.sanitize(event.inputPreview, { truncate: true }) ?? undefined
+        : undefined,
+      outputPreview: event.outputPreview
+        ? this.sanitizerService.sanitize(event.outputPreview, { truncate: true }) ?? undefined
+        : undefined,
+    };
+
     // 2. Map and persist to Database
-    const provider = PROVIDER_MAP[event.provider];
+    const provider = PROVIDER_MAP[sanitizedEvent.provider];
     if (!provider) {
-      throw new Error(`Unknown provider: ${event.provider}`);
+      throw new Error(`Unknown provider: ${sanitizedEvent.provider}`);
     }
 
-    const status = STATUS_MAP[event.status] ?? 'ERROR';
+    const status = STATUS_MAP[sanitizedEvent.status] ?? 'ERROR';
 
     await this.prisma.inferenceLog.create({
       data: {
         requestCorrelationId: envelope.correlationId,
-        conversationId: event.conversationId ?? null,
-        sessionId: event.sessionId,
+        conversationId: sanitizedEvent.conversationId ?? null,
+        sessionId: sanitizedEvent.sessionId,
         provider,
-        model: event.model,
+        model: sanitizedEvent.model,
         status,
-        errorCode: event.error?.code ?? null,
-        errorMessage: event.error?.message ?? null,
-        latencyMs: event.latencyMs,
-        promptTokens: event.tokenUsage?.promptTokens ?? null,
-        completionTokens: event.tokenUsage?.completionTokens ?? null,
-        totalTokens: event.tokenUsage?.totalTokens ?? null,
-        fallbackFromProvider: event.fallbackMetadata?.fallbackFromProvider
-          ? PROVIDER_MAP[event.fallbackMetadata.fallbackFromProvider] ?? null
+        errorCode: sanitizedEvent.error?.code ?? null,
+        errorMessage: sanitizedEvent.error?.message ?? null,
+        latencyMs: sanitizedEvent.latencyMs,
+        promptTokens: sanitizedEvent.tokenUsage?.promptTokens ?? null,
+        completionTokens: sanitizedEvent.tokenUsage?.completionTokens ?? null,
+        totalTokens: sanitizedEvent.tokenUsage?.totalTokens ?? null,
+        fallbackFromProvider: sanitizedEvent.fallbackMetadata?.fallbackFromProvider
+          ? PROVIDER_MAP[sanitizedEvent.fallbackMetadata.fallbackFromProvider] ?? null
           : null,
-        fallbackFromModel: event.fallbackMetadata?.fallbackFromModel ?? null,
+        fallbackFromModel: sanitizedEvent.fallbackMetadata?.fallbackFromModel ?? null,
+        inputPreview: sanitizedEvent.inputPreview ?? null,
+        outputPreview: sanitizedEvent.outputPreview ?? null,
       },
     });
 
@@ -94,7 +119,7 @@ export class InferenceProcessor extends WorkerHost {
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job): void {
-    const correlationId = job.data?.correlationId;
+    const correlationId = (job.data as Record<string, unknown> | undefined)?.correlationId as string | undefined;
     this.logger.pino.debug(
       { jobId: job.id, correlationId },
       'job.completed',
@@ -103,7 +128,7 @@ export class InferenceProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   async onFailed(job: Job, error: Error): Promise<void> {
-    const correlationId = job.data?.correlationId;
+    const correlationId = (job.data as Record<string, unknown> | undefined)?.correlationId as string | undefined;
     this.logger.pino.error(
       {
         jobId: job.id,

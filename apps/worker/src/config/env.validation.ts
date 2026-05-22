@@ -9,4 +9,6 @@ export const envValidationSchema = Joi.object({
   WORKER_MAX_RETRIES: Joi.number().integer().positive().default(4),
   DLQ_NAME: Joi.string().default('inference-events-dlq'),
   LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('info'),
+  PII_REDACTION_ENABLED: Joi.boolean().default(true),
+  PREVIEW_MAX_LENGTH: Joi.number().integer().positive().default(1000),
 });

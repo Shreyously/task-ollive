@@ -16,4 +16,8 @@ export const workerConfig = registerAs('worker', () => ({
   log: {
     level: process.env.LOG_LEVEL ?? 'info',
   },
+  redaction: {
+    enabled: process.env.PII_REDACTION_ENABLED !== 'false',
+    previewMaxLength: Number(process.env.PREVIEW_MAX_LENGTH ?? 1000),
+  },
 }));

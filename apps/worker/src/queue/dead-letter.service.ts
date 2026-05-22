@@ -29,7 +29,7 @@ export class DeadLetterService implements OnModuleInit {
   }
 
   async moveToDeadLetter(job: Job, error: Error): Promise<void> {
-    const correlationId = job.data?.correlationId;
+    const correlationId = (job.data as Record<string, unknown> | undefined)?.correlationId as string | undefined;
     this.logger.pino.warn(
       { jobId: job.id, correlationId, attemptsMade: job.attemptsMade, error: error.message },
       'job.moving_to_dlq',
@@ -39,7 +39,7 @@ export class DeadLetterService implements OnModuleInit {
       await this.dlqQueue.add('dead-letter', {
         originalJobId: job.id,
         originalJobName: job.name,
-        originalData: job.data,
+        originalData: job.data as unknown,
         failedAt: new Date().toISOString(),
         error: {
           message: error.message,

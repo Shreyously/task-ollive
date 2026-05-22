@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { INFERENCE_QUEUE_NAME } from '@repo/shared-types';
 
+import { SanitizerModule } from '../sanitizer/sanitizer.module.js';
 import { DeadLetterService } from './dead-letter.service.js';
 import { InferenceProcessor } from './inference.processor.js';
 import { ValidationService } from './validation.service.js';
@@ -18,6 +19,7 @@ import { ValidationService } from './validation.service.js';
           INFERENCE_QUEUE_NAME,
       }),
     }),
+    SanitizerModule,
   ],
   providers: [InferenceProcessor, ValidationService, DeadLetterService],
   exports: [DeadLetterService],

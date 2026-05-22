@@ -3,7 +3,6 @@ import {
   IsBoolean,
   IsIn,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
   ValidateNested,

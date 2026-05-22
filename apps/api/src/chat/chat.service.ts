@@ -120,6 +120,19 @@ export class ChatService {
         disableFallback: dto.disableFallback,
         correlationId: streamId,
       }),
+      {
+        onComplete: (accumulatedText) => {
+          const promptTokens = Math.ceil(prompt.length / 4);
+          const completionTokens = Math.ceil(accumulatedText.length / 4);
+          return {
+            tokenUsage: {
+              promptTokens,
+              completionTokens,
+              totalTokens: promptTokens + completionTokens,
+            },
+          };
+        },
+      },
     );
 
     let accumulatedText = '';

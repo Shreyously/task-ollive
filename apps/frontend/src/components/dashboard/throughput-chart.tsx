@@ -57,6 +57,12 @@ export function ThroughputChart({ data, window }: ThroughputChartProps) {
     );
   }
 
+  // Calculate actual success count (Total - Errors) for proper stacked representation
+  const processedData = data.map((item) => ({
+    ...item,
+    successCount: Math.max(0, item.requestCount - item.errorCount),
+  }));
+
   return (
     <div className="rounded-xl border border-app-border bg-app-panel p-5 shadow-lg shadow-black/10">
       <div className="mb-4 flex items-center justify-between">
@@ -69,7 +75,7 @@ export function ThroughputChart({ data, window }: ThroughputChartProps) {
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={data}
+            data={processedData}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
             <CartesianGrid
@@ -111,7 +117,7 @@ export function ThroughputChart({ data, window }: ThroughputChartProps) {
               wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}
             />
             <Bar
-              dataKey="requestCount"
+              dataKey="successCount"
               name="Success"
               stackId="a"
               fill="#06b6d4"
@@ -121,7 +127,7 @@ export function ThroughputChart({ data, window }: ThroughputChartProps) {
             <Bar
               dataKey="errorCount"
               name="Errors"
-              stackId="b"
+              stackId="a"
               fill="#ef4444"
               radius={[4, 4, 0, 0]}
               maxBarSize={30}

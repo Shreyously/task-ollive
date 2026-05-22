@@ -38,6 +38,11 @@ export function ChatPanel({ messages, isSending, onSend, onCancel }: ChatPanelPr
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                submit();
+              }
+            }}
             placeholder="Type a message..."
             disabled={isSending}
             className="w-full rounded-md border border-app-border bg-slate-900 px-3 py-2 text-sm outline-none focus:border-cyan-500"

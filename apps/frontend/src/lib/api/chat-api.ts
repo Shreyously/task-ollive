@@ -31,7 +31,7 @@ export type StreamEvent =
   | { event: 'token'; data: { token: string } }
   | { event: 'completed'; data: StreamEventCompleted }
   | { event: 'canceled'; data: { streamId: string } }
-  | { event: 'error'; data: { streamId: string; message: string } };
+  | { event: 'error'; data: { streamId: string | null; message: string } };
 
 export async function createConversation(input: CreateConversationInput): Promise<ConversationItem> {
   const response = await apiClient.request<ApiResponse<ConversationItem>>('/conversations', {

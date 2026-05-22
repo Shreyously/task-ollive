@@ -10,7 +10,8 @@ export class MetricsQueryDto {
   model?: string;
 
   @IsOptional()
-  @IsIn(['1h', '24h', '7d'])
-  window?: '1h' | '24h' | '7d';
+  @IsIn(['1h', '24h', '7d', '30d'])
+  window?: '1h' | '24h' | '7d' | '30d';
 }
+
 

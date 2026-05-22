@@ -118,8 +118,8 @@ export async function streamMessage(
       if (!eventLine || !dataLine) continue;
 
       const event = eventLine.replace('event: ', '').trim() as StreamEvent['event'];
-      const data = JSON.parse(dataLine.replace('data: ', ''));
-      handlers.onEvent({ event, data } as StreamEvent);
+      const data = JSON.parse(dataLine.replace('data: ', '')) as Record<string, unknown>;
+      handlers.onEvent({ event, data } as unknown as StreamEvent);
     }
   }
 }

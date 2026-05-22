@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ChatPanel } from '../components/chat/chat-panel';
 import { ConversationSidebar } from '../components/chat/conversation-sidebar';
 import { ProviderModelSelector } from '../components/chat/provider-model-selector';
 import { ErrorState, LoadingState } from '../components/common/state';
 import { useConversations, useCreateConversation, useMessages } from '../hooks/use-chat-data';
-import { cancelStream, streamMessage, type StreamEventStarted } from '../lib/api/chat-api';
 import { useSessionId } from '../hooks/use-session-id';
+import { cancelStream, streamMessage } from '../lib/api/chat-api';
 import type { ApiResponse, ChatMessage, ModelId, ProviderId } from '../lib/types';
 
 export function ChatPage() {
@@ -93,7 +93,7 @@ export function ChatPage() {
           signal: abortController.signal,
           onEvent: (event) => {
             if (event.event === 'started') {
-              const startedData = event.data as StreamEventStarted;
+              const startedData = event.data;
               activeConversationId = startedData.conversationId;
               setActiveStreamId(startedData.streamId);
               setStreamingConversationId(startedData.conversationId);
@@ -236,7 +236,7 @@ export function ChatPage() {
         ) : messagesQuery.error ? (
           <ErrorState label="Unable to load chat history." />
         ) : (
-          <ChatPanel messages={messages} isSending={isStreaming} onSend={onSend} onCancel={onCancel} />
+          <ChatPanel messages={messages} isSending={isStreaming} onSend={(content) => { void onSend(content); }} onCancel={onCancel} />
         )}
       </div>
     </div>

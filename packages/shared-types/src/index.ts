@@ -9,3 +9,7 @@ export interface QueueEnvelope<TPayload> {
   version: 'v1';
 }
 
+export const INFERENCE_QUEUE_NAME = 'inference-events';
+export const INFERENCE_JOB_NAME = 'inference.log';
+
+

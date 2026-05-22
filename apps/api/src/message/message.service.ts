@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-
 import type { MessageRole } from '@prisma/client';
+
 import type { ApiResponse } from '../common/http/api-response.js';
 import { ConversationRepository } from '../conversation/conversation.repository.js';
 import type { CreateMessageDto } from './dto/create-message.dto.js';

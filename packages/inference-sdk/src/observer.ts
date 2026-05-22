@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+
 import type { FallbackMetadata, InferenceContext, InferenceEvent, InferenceEventEnvelope, InferenceObserverConfig, TokenUsage } from './types.js';
 
 export class InferenceObserver {
@@ -10,7 +11,7 @@ export class InferenceObserver {
 
   private createEnvelope(
     payload: InferenceEvent,
-    correlationId: string
+    correlationId: string,
   ): InferenceEventEnvelope {
     return {
       correlationId,
@@ -32,10 +33,10 @@ export class InferenceObserver {
         tokenUsage?: TokenUsage;
         fallbackMetadata?: FallbackMetadata;
       };
-    }
+    },
   ): Promise<T> {
     const requestId = randomUUID();
-    const correlationId = context.correlationId || randomUUID();
+    const correlationId = context.correlationId ?? randomUUID();
     const startedAt = new Date().toISOString();
     const startTime = performance.now();
 
@@ -50,6 +51,7 @@ export class InferenceObserver {
       const event: InferenceEvent = {
         requestId,
         conversationId: context.conversationId,
+        sessionId: context.sessionId,
         provider: context.provider,
         model: context.model,
         latencyMs,
@@ -64,14 +66,17 @@ export class InferenceObserver {
 
       await this.safeEmit(this.createEnvelope(event, correlationId));
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const endTime = performance.now();
       const latencyMs = Math.round(endTime - startTime);
       const completedAt = new Date().toISOString();
 
+      const errorObject = err as Record<string, unknown> & { message?: string; code?: string; stack?: string };
+
       const event: InferenceEvent = {
         requestId,
         conversationId: context.conversationId,
+        sessionId: context.sessionId,
         provider: context.provider,
         model: context.model,
         latencyMs,
@@ -80,9 +85,9 @@ export class InferenceObserver {
         status: 'error',
         inputPreview: context.inputPreview,
         error: {
-          message: err?.message || String(err),
-          code: err?.code,
-          stack: err?.stack,
+          message: errorObject?.message ?? (err instanceof Error ? err.message : 'Unknown error'),
+          code: typeof errorObject?.code === 'string' ? errorObject.code : undefined,
+          stack: typeof errorObject?.stack === 'string' ? errorObject.stack : undefined,
         },
       };
 
@@ -103,23 +108,22 @@ export class InferenceObserver {
         tokenUsage?: TokenUsage;
         fallbackMetadata?: FallbackMetadata;
       };
-    }
+    },
   ): Promise<AsyncIterable<string>> {
     const requestId = randomUUID();
-    const correlationId = context.correlationId || randomUUID();
+    const correlationId = context.correlationId ?? randomUUID();
     const startedAt = new Date().toISOString();
     const startTime = performance.now();
 
     try {
       const stream = await executor();
-      const observer = this;
 
       return {
-        [Symbol.asyncIterator]() {
+        [Symbol.asyncIterator]: () => {
           const iterator = stream[Symbol.asyncIterator]();
           let accumulatedText = '';
           let status: 'success' | 'error' | 'canceled' = 'success';
-          let streamError: any = undefined;
+          let streamError: unknown = undefined;
           let isFinalized = false;
 
           const finalize = async (finalStatus: 'success' | 'error' | 'canceled') => {
@@ -135,9 +139,12 @@ export class InferenceObserver {
               ? options.onComplete(accumulatedText)
               : undefined;
 
+            const errorObject = streamError as Record<string, unknown> & { message?: string; code?: string; stack?: string };
+
             const event: InferenceEvent = {
               requestId,
               conversationId: context.conversationId,
+              sessionId: context.sessionId,
               provider: context.provider,
               model: context.model,
               latencyMs,
@@ -150,14 +157,14 @@ export class InferenceObserver {
               fallbackMetadata: completionDetails?.fallbackMetadata,
               ...(streamError ? {
                 error: {
-                  message: streamError?.message || String(streamError),
-                  code: streamError?.code,
-                  stack: streamError?.stack,
-                }
-              } : {})
+                  message: errorObject?.message ?? (streamError instanceof Error ? streamError.message : 'Unknown stream error'),
+                  code: typeof errorObject?.code === 'string' ? errorObject.code : undefined,
+                  stack: typeof errorObject?.stack === 'string' ? errorObject.stack : undefined,
+                },
+              } : {}),
             };
 
-            await observer.safeEmit(observer.createEnvelope(event, correlationId));
+            await this.safeEmit(this.createEnvelope(event, correlationId));
           };
 
           return {
@@ -170,38 +177,41 @@ export class InferenceObserver {
                   accumulatedText += nextResult.value;
                 }
                 return nextResult;
-              } catch (err: any) {
+              } catch (err: unknown) {
                 streamError = err;
                 await finalize('error');
                 throw err;
               }
             },
-            async return(value?: any) {
+            async return(value?: unknown) {
               await finalize('canceled');
               if (typeof iterator.return === 'function') {
                 return await iterator.return(value);
               }
               return { done: true, value };
             },
-            async throw(err?: any) {
+            async throw(err?: unknown) {
               streamError = err;
               await finalize('error');
               if (typeof iterator.throw === 'function') {
                 return await iterator.throw(err);
               }
               throw err;
-            }
+            },
           };
-        }
+        },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       const endTime = performance.now();
       const latencyMs = Math.round(endTime - startTime);
       const completedAt = new Date().toISOString();
 
+      const errorObject = err as Record<string, unknown> & { message?: string; code?: string; stack?: string };
+
       const event: InferenceEvent = {
         requestId,
         conversationId: context.conversationId,
+        sessionId: context.sessionId,
         provider: context.provider,
         model: context.model,
         latencyMs,
@@ -210,9 +220,9 @@ export class InferenceObserver {
         status: 'error',
         inputPreview: context.inputPreview,
         error: {
-          message: err?.message || String(err),
-          code: err?.code,
-          stack: err?.stack,
+          message: errorObject?.message ?? (err instanceof Error ? err.message : 'Unknown error'),
+          code: typeof errorObject?.code === 'string' ? errorObject.code : undefined,
+          stack: typeof errorObject?.stack === 'string' ? errorObject.stack : undefined,
         },
       };
 

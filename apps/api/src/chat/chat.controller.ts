@@ -1,9 +1,9 @@
 import { Body, Controller, Inject, Param, Post, Res } from '@nestjs/common';
 import type { Response } from 'express';
 
+import { ChatService } from './chat.service.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 import { StreamMessageDto } from './dto/stream-message.dto.js';
-import { ChatService } from './chat.service.js';
 
 @Controller('chat')
 export class ChatController {

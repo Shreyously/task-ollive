@@ -1,8 +1,11 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { MessageRole } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { MessageRole } from '@prisma/client';
+import { InferenceObserver } from '@repo/inference-sdk';
+
 import { ConversationRepository } from '../conversation/conversation.repository.js';
+import { IngestionService } from '../ingestion/ingestion.service.js';
 import { MessageRepository } from '../message/message.repository.js';
 import { ProviderService } from '../provider/provider.service.js';
 import type { SendMessageDto } from './dto/send-message.dto.js';
@@ -11,6 +14,7 @@ import type { StreamMessageDto } from './dto/stream-message.dto.js';
 @Injectable()
 export class ChatService {
   private readonly canceledStreams = new Set<string>();
+  private readonly observer: InferenceObserver;
 
   constructor(
     @Inject(ConversationRepository)
@@ -19,7 +23,13 @@ export class ChatService {
     private readonly messages: MessageRepository,
     @Inject(ProviderService)
     private readonly providers: ProviderService,
-  ) {}
+    @Inject(IngestionService)
+    private readonly ingestion: IngestionService,
+  ) {
+    this.observer = new InferenceObserver({
+      onEmit: (envelope) => this.ingestion.enqueue(envelope),
+    });
+  }
 
   // Provider routing + streaming implementation intentionally deferred.
   async sendMessage(dto: SendMessageDto) {
@@ -91,11 +101,21 @@ export class ChatService {
       model: dto.model,
       fallbackEnabled: !dto.disableFallback,
     });
-    const stream = await this.providers.stream({
-      model: dto.model,
-      prompt,
-      disableFallback: dto.disableFallback,
-    });
+    const stream = await this.observer.wrapStream(
+      {
+        conversationId: conversation.id,
+        correlationId: streamId,
+        sessionId: dto.sessionId,
+        provider: dto.model.startsWith('llama') ? 'groq' : 'google',
+        model: dto.model,
+        inputPreview: dto.content.slice(0, 200),
+      },
+      () => this.providers.stream({
+        model: dto.model,
+        prompt,
+        disableFallback: dto.disableFallback,
+      }),
+    );
 
     let accumulatedText = '';
 
@@ -131,7 +151,7 @@ export class ChatService {
         error instanceof Error
           ? error.message
           : typeof error === 'object' && error !== null && 'message' in error
-            ? String((error as { message: unknown }).message)
+            ? String((error).message)
             : 'Streaming failed';
 
       // If we accumulated some text before the error, still save it
@@ -156,7 +176,7 @@ export class ChatService {
   }
 
   private buildPromptFromRecentMessages(
-    recentMessages: Array<{ role: MessageRole; content: string }>,
+    recentMessages: { role: MessageRole; content: string }[],
   ): string {
     const inOrder = [...recentMessages].reverse();
     const lines = inOrder.map((message) => `${message.role}: ${message.content}`);

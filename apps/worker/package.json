@@ -9,9 +9,18 @@
     "dev": "tsx watch src/main.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "prisma:generate": "prisma generate --schema=../api/prisma/schema.prisma",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@repo/shared-types": "0.1.0"
+    "@prisma/client": "^5.22.0",
+    "@repo/inference-sdk": "0.1.0",
+    "@repo/shared-types": "0.1.0",
+    "bullmq": "^5.12.15",
+    "ioredis": "^5.4.1",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
   }
 }

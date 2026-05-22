@@ -1,10 +1,10 @@
+import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import {
   Catch,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 
 import { serializeError } from '../logging/error-serializer.js';
 import { AppLogger } from '../logging/logger.service.js';

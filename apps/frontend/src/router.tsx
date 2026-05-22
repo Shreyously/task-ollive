@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter,Navigate } from 'react-router-dom';
 
 import { AppShell } from './components/layout/app-shell';
 import { ChatPage } from './pages/chat-page';

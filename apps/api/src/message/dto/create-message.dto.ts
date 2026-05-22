@@ -1,5 +1,5 @@
-import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { MessageRole } from '@prisma/client';
+import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateMessageDto {
   @IsString()

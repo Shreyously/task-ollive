@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { generateText, streamText, type LanguageModelUsage } from 'ai';
 import { google } from '@ai-sdk/google';
+import { Injectable } from '@nestjs/common';
+import { generateText, type LanguageModelUsage,streamText } from 'ai';
 
 import type {
   LLMGenerateRequest,
@@ -39,7 +39,7 @@ export class GoogleLlmProvider implements LLMProvider {
     }
   }
 
-  async stream(request: LLMGenerateRequest): Promise<AsyncIterable<string>> {
+  stream(request: LLMGenerateRequest): Promise<AsyncIterable<string>> {
     try {
       const result = streamText({
         model: google(request.model),
@@ -51,9 +51,9 @@ export class GoogleLlmProvider implements LLMProvider {
       // Use fullStream instead of textStream because textStream silently
       // swallows errors (yields 0 chunks), while fullStream surfaces them
       // as error events that we can re-throw to trigger provider fallback.
-      return this.wrapFullStream(result.fullStream);
+      return Promise.resolve(this.wrapFullStream(result.fullStream));
     } catch (error: unknown) {
-      throw normalizeProviderError(error, this.provider, request.model);
+      return Promise.reject(normalizeProviderError(error, this.provider, request.model));
     }
   }
 

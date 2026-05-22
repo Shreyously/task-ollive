@@ -1,6 +1,4 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { GoogleLlmProvider } from './providers/google-llm.provider.js';
-import { GroqLlmProvider } from './providers/groq-llm.provider.js';
 
 import type { ProviderSelectionDto } from './dto/provider-selection.dto.js';
 import { FALLBACK_MODEL, MODEL_TO_PROVIDER } from './provider.constants.js';
@@ -12,6 +10,8 @@ import type {
   ModelId,
   ProviderId,
 } from './provider.types.js';
+import { GoogleLlmProvider } from './providers/google-llm.provider.js';
+import { GroqLlmProvider } from './providers/groq-llm.provider.js';
 
 @Injectable()
 export class ProviderService {

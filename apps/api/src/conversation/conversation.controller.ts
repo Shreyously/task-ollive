@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
 
+import { ConversationService } from './conversation.service.js';
 import { CreateConversationDto } from './dto/create-conversation.dto.js';
 import { ListConversationsQueryDto } from './dto/list-conversations-query.dto.js';
-import { ConversationService } from './conversation.service.js';
 
 @Controller('conversations')
 export class ConversationController {

@@ -21,6 +21,7 @@ export interface InferenceError {
 export interface InferenceEvent {
   requestId: string;
   conversationId?: string;
+  sessionId: string;
   provider: ProviderId;
   model: ModelId;
   latencyMs: number;
@@ -45,6 +46,7 @@ export interface InferenceObserverConfig {
 export interface InferenceContext {
   conversationId?: string;
   correlationId?: string;
+  sessionId: string;
   provider: ProviderId;
   model: ModelId;
   inputPreview?: string;

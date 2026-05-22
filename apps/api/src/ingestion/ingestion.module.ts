@@ -2,7 +2,6 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { IngestionController } from './ingestion.controller.js';
 import { IngestionService } from './ingestion.service.js';
 
 @Module({
@@ -15,7 +14,6 @@ import { IngestionService } from './ingestion.service.js';
       }),
     }),
   ],
-  controllers: [IngestionController],
   providers: [IngestionService],
   exports: [IngestionService],
 })

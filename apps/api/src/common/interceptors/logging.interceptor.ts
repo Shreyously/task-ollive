@@ -1,9 +1,9 @@
+import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common';
 import {
   Injectable,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Observable, tap } from 'rxjs';
-import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common';
 
 import { serializeError } from '../logging/error-serializer.js';
 import { AppLogger } from '../logging/logger.service.js';

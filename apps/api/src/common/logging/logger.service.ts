@@ -1,6 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
-import pino, { type Logger } from 'pino';
 import type { LoggerService } from '@nestjs/common';
+import { Inject,Injectable } from '@nestjs/common';
+import pino, { type Logger } from 'pino';
 
 import { RequestContextService } from '../request-context/request-context.service.js';
 

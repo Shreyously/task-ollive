@@ -5,7 +5,7 @@ export interface SerializedError {
   cause?: unknown;
 }
 
-export function serializeError(error: unknown): SerializedError | unknown {
+export function serializeError(error: unknown): unknown {
   if (error instanceof Error) {
     return {
       name: error.name,

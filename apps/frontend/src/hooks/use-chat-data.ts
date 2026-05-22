@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   createConversation,
+  type CreateConversationInput,
   listConversations,
   listMessages,
-  type CreateConversationInput,
 } from '../lib/api/chat-api';
 
 export function useConversations(sessionId: string) {

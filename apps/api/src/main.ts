@@ -41,7 +41,7 @@ export async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error: unknown) => {
-  // eslint-disable-next-line no-console
+   
   console.error('Fatal bootstrap error:', error);
   process.exit(1);
 });

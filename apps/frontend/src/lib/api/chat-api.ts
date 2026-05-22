@@ -123,3 +123,9 @@ export async function streamMessage(
     }
   }
 }
+
+export async function cancelStream(streamId: string): Promise<void> {
+  await apiClient.request(`/chat/stream/${encodeURIComponent(streamId)}/cancel`, {
+    method: 'POST',
+  });
+}

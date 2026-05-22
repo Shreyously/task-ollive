@@ -83,6 +83,14 @@ export class ChatService {
 
     const recent = await this.messages.findRecentByConversation(conversation.id, 12);
     const prompt = this.buildPromptFromRecentMessages(recent);
+    // Temporary runtime trace for model/provider selection visibility.
+    // Uses console log intentionally per request to simplify local debugging.
+    console.log('[chat.stream.request]', {
+      conversationId: conversation.id,
+      sessionId: dto.sessionId,
+      model: dto.model,
+      fallbackEnabled: !dto.disableFallback,
+    });
     const stream = await this.providers.stream({
       model: dto.model,
       prompt,

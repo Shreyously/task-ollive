@@ -46,6 +46,7 @@ export class ChatController {
       });
     } catch (error: unknown) {
       writeEvent('error', {
+        streamId: activeStreamId,
         message: error instanceof Error ? error.message : 'Streaming failed',
       });
     }

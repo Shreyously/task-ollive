@@ -6,7 +6,7 @@ import { ConversationSidebar } from '../components/chat/conversation-sidebar';
 import { ProviderModelSelector } from '../components/chat/provider-model-selector';
 import { ErrorState, LoadingState } from '../components/common/state';
 import { useConversations, useCreateConversation, useMessages } from '../hooks/use-chat-data';
-import { streamMessage, type StreamEventStarted } from '../lib/api/chat-api';
+import { cancelStream, streamMessage, type StreamEventStarted } from '../lib/api/chat-api';
 import { useSessionId } from '../hooks/use-session-id';
 import type { ApiResponse, ChatMessage, ModelId, ProviderId } from '../lib/types';
 
@@ -35,6 +35,7 @@ export function ChatPage() {
   const messagesQuery = useMessages(selectedConversationId, sessionId);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamAbortController, setStreamAbortController] = useState<AbortController | null>(null);
+  const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
   const [streamingConversationId, setStreamingConversationId] = useState<string | null>(null);
 
   const messages = useMemo<ChatMessage[]>(() => {
@@ -73,6 +74,13 @@ export function ChatPage() {
     const streamingAssistantTempId = `streaming_${Date.now()}`;
 
     try {
+      console.log('[chat.stream.request]', {
+        provider,
+        model,
+        sessionId,
+        conversationId: selectedConversationId ?? null,
+      });
+
       await streamMessage(
         {
           sessionId,
@@ -87,6 +95,7 @@ export function ChatPage() {
             if (event.event === 'started') {
               const startedData = event.data as StreamEventStarted;
               activeConversationId = startedData.conversationId;
+              setActiveStreamId(startedData.streamId);
               setStreamingConversationId(startedData.conversationId);
               setSelectedConversationId(startedData.conversationId);
 
@@ -144,7 +153,11 @@ export function ChatPage() {
 
             if (event.event === 'canceled' && activeConversationId) {
               upsertMessages(activeConversationId, (prev) =>
-                prev.filter((message) => message.id !== streamingAssistantTempId),
+                prev.map((message) =>
+                  message.id === streamingAssistantTempId
+                    ? { ...message, content: '[canceled]', isStreaming: false }
+                    : message,
+                ),
               );
               return;
             }
@@ -161,8 +174,18 @@ export function ChatPage() {
           },
         },
       );
-    } catch {
-      if (activeConversationId) {
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        if (activeConversationId) {
+          upsertMessages(activeConversationId, (prev) =>
+            prev.map((message) =>
+              message.id === streamingAssistantTempId
+                ? { ...message, content: '[canceled]', isStreaming: false }
+                : message,
+            ),
+          );
+        }
+      } else if (activeConversationId) {
         upsertMessages(activeConversationId, (prev) =>
           prev.map((message) =>
             message.id === streamingAssistantTempId
@@ -174,14 +197,19 @@ export function ChatPage() {
     } finally {
       setIsStreaming(false);
       setStreamAbortController(null);
+      setActiveStreamId(null);
       setStreamingConversationId(null);
     }
   };
 
   const onCancel = () => {
+    if (activeStreamId) {
+      void cancelStream(activeStreamId);
+    }
     streamAbortController?.abort();
     setIsStreaming(false);
     setStreamAbortController(null);
+    setActiveStreamId(null);
   };
 
   if (conversationsQuery.isLoading) return <LoadingState label="Loading conversations..." />;

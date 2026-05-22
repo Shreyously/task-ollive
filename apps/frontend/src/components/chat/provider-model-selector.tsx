@@ -2,7 +2,7 @@ import type { ModelId, ProviderId } from '../../lib/types';
 
 const providerModels: Record<ProviderId, ModelId[]> = {
   google: ['gemini-2.0-flash'],
-  groq: ['llama-3.3-70b', 'gemma2-9b'],
+  groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
 };
 
 interface ProviderModelSelectorProps {

@@ -29,6 +29,14 @@ export class MessageRepository {
     });
   }
 
+  findRecentByConversation(conversationId: string, take: number) {
+    return this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+  }
+
   countByConversation(conversationId: string) {
     return this.prisma.message.count({ where: { conversationId } });
   }

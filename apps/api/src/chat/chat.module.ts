@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 
 import { ConversationModule } from '../conversation/conversation.module.js';
 import { MessageModule } from '../message/message.module.js';
+import { ProviderModule } from '../provider/provider.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatService } from './chat.service.js';
 
 @Module({
-  imports: [ConversationModule, MessageModule],
+  imports: [ConversationModule, MessageModule, ProviderModule],
   controllers: [ChatController],
   providers: [ChatService],
   exports: [ChatService],

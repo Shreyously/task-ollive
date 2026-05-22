@@ -6,9 +6,10 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   isSending: boolean;
   onSend: (content: string) => void;
+  onCancel: () => void;
 }
 
-export function ChatPanel({ messages, isSending, onSend }: ChatPanelProps) {
+export function ChatPanel({ messages, isSending, onSend, onCancel }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
 
   function submit() {
@@ -38,6 +39,7 @@ export function ChatPanel({ messages, isSending, onSend }: ChatPanelProps) {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Type a message..."
+            disabled={isSending}
             className="w-full rounded-md border border-app-border bg-slate-900 px-3 py-2 text-sm outline-none focus:border-cyan-500"
           />
           <button
@@ -48,6 +50,15 @@ export function ChatPanel({ messages, isSending, onSend }: ChatPanelProps) {
           >
             {isSending ? 'Sending...' : 'Send'}
           </button>
+          {isSending ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-md border border-rose-400/60 px-4 py-2 text-sm font-medium text-rose-200"
+            >
+              Cancel
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

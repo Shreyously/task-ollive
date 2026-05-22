@@ -1,6 +1,6 @@
 export type ProviderId = 'google' | 'groq';
 
-export type ModelId = 'gemini-2.0-flash' | 'llama-3.3-70b' | 'gemma2-9b';
+export type ModelId = 'gemini-2.0-flash' | 'llama-3.3-70b-versatile' | 'llama-3.1-8b-instant';
 
 export interface ConversationItem {
   id: string;
@@ -17,6 +17,7 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   createdAt: string;
+  isStreaming?: boolean;
 }
 
 export interface DashboardSummary {

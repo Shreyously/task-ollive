@@ -14,6 +14,25 @@ export interface SendMessageInput {
   model: ModelId;
 }
 
+export interface StreamEventStarted {
+  streamId: string;
+  conversationId: string;
+  userMessage: ChatMessage;
+}
+
+export interface StreamEventCompleted {
+  streamId: string;
+  conversationId: string;
+  assistantMessage: ChatMessage;
+}
+
+export type StreamEvent =
+  | { event: 'started'; data: StreamEventStarted }
+  | { event: 'token'; data: { token: string } }
+  | { event: 'completed'; data: StreamEventCompleted }
+  | { event: 'canceled'; data: { streamId: string } }
+  | { event: 'error'; data: { streamId: string; message: string } };
+
 export async function createConversation(input: CreateConversationInput): Promise<ConversationItem> {
   const response = await apiClient.request<ApiResponse<ConversationItem>>('/conversations', {
     method: 'POST',
@@ -54,4 +73,53 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
     body: JSON.stringify(input),
   });
   return response.data;
+}
+
+export async function streamMessage(
+  input: SendMessageInput,
+  handlers: {
+    onEvent: (event: StreamEvent) => void;
+    signal?: AbortSignal;
+  },
+): Promise<void> {
+  const response = await fetch(`${apiClient.baseUrl}/chat/stream`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: input.sessionId,
+      conversationId: input.conversationId,
+      content: input.content,
+      model: input.model,
+    }),
+    signal: handlers.signal,
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Stream request failed (${response.status})`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary !== -1) {
+      const rawEvent = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      boundary = buffer.indexOf('\n\n');
+
+      const eventLine = rawEvent.split('\n').find((line) => line.startsWith('event: '));
+      const dataLine = rawEvent.split('\n').find((line) => line.startsWith('data: '));
+      if (!eventLine || !dataLine) continue;
+
+      const event = eventLine.replace('event: ', '').trim() as StreamEvent['event'];
+      const data = JSON.parse(dataLine.replace('data: ', ''));
+      handlers.onEvent({ event, data } as StreamEvent);
+    }
+  }
 }

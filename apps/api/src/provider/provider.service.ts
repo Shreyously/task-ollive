@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { GoogleLlmProvider } from './providers/google-llm.provider.js';
 import { GroqLlmProvider } from './providers/groq-llm.provider.js';
 
@@ -18,7 +18,9 @@ export class ProviderService {
   private readonly providersById: Record<ProviderId, LLMProvider>;
 
   constructor(
+    @Inject(GoogleLlmProvider)
     private readonly googleProvider: GoogleLlmProvider,
+    @Inject(GroqLlmProvider)
     private readonly groqProvider: GroqLlmProvider,
   ) {
     this.providersById = {
@@ -61,8 +63,22 @@ export class ProviderService {
 
   async stream(request: LLMGenerateRequest): Promise<AsyncIterable<string>> {
     const provider = this.resolveProviderForModel(request.model);
+
     try {
-      return await provider.stream(request);
+      const primaryStream = await provider.stream(request);
+      // Attempt to read the first chunk to verify the stream is actually working.
+      // Errors from Vercel AI SDK's streamText only surface during async iteration,
+      // not from the initial call, so we must try iterating before committing.
+      const iterator = primaryStream[Symbol.asyncIterator]();
+      const first = await iterator.next();
+
+      if (first.done) {
+        // Stream completed without any text — treat as a failure
+        throw new Error('Primary provider returned empty stream');
+      }
+
+      // Stream is healthy — yield the first chunk then continue
+      return this.prependChunk(first.value, iterator);
     } catch (primaryError) {
       if (request.disableFallback) throw primaryError;
       const fallbackModel = FALLBACK_MODEL[request.model];
@@ -72,13 +88,35 @@ export class ProviderService {
     }
   }
 
+  private async *prependChunk(
+    firstChunk: string,
+    iterator: AsyncIterator<string>,
+  ): AsyncIterable<string> {
+    yield firstChunk;
+    while (true) {
+      const next = await iterator.next();
+      if (next.done) break;
+      yield next.value;
+    }
+  }
+
   extractUsage(providerId: ProviderId, usage: unknown): LLMUsage {
     const provider = this.providersById[providerId];
+    if (!provider) {
+      throw new InternalServerErrorException(`Provider not registered: ${providerId}`);
+    }
     return provider.extractUsage(usage as never);
   }
 
   private resolveProviderForModel(model: ModelId): LLMProvider {
     const providerId = MODEL_TO_PROVIDER[model];
-    return this.providersById[providerId];
+    const provider = this.providersById[providerId];
+    if (!provider) {
+      throw new InternalServerErrorException(
+        `No provider registered for model ${model} (expected provider: ${providerId})`,
+      );
+    }
+
+    return provider;
   }
 }

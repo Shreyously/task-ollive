@@ -27,6 +27,52 @@ export interface DashboardSummary {
   avgTokens: number;
 }
 
+export interface DashboardOverview {
+  totalRequests: number;
+  errorRequests: number;
+  errorRate: number;
+  averageLatencyMs: number;
+  requestsPerMinute: number;
+  tokenConsumption: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  window: string;
+}
+
+export interface ProviderMetric {
+  provider: string;
+  count: number;
+  avgLatencyMs: number;
+}
+
+export interface ModelMetric {
+  model: string;
+  count: number;
+  avgLatencyMs: number;
+}
+
+export interface DashboardUsage {
+  byProvider: ProviderMetric[];
+  byModel: ModelMetric[];
+  window: string;
+}
+
+export interface DashboardTrendItem {
+  timestamp: string;
+  requestCount: number;
+  errorCount: number;
+  avgLatencyMs: number;
+  totalTokens: number;
+  errorRate: number;
+}
+
+export interface DashboardTrends {
+  trends: DashboardTrendItem[];
+  window: string;
+}
+
 export interface ApiResponse<T> {
   data: T;
   meta?: {
@@ -35,3 +81,7 @@ export interface ApiResponse<T> {
     total: number;
   };
 }
+
+export type TimeWindow = '1h' | '24h' | '7d' | '30d';
+
+

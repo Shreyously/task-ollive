@@ -1,14 +1,15 @@
-import type { DashboardSummary } from '../types';
+import type { DashboardOverview, DashboardUsage, DashboardTrends, TimeWindow } from '../types';
 import { apiClient } from './client';
 
-export async function getDashboardSummary(): Promise<DashboardSummary> {
-  void apiClient.baseUrl;
-  await new Promise((resolve) => setTimeout(resolve, 250));
 
-  return {
-    totalRequests: 1242,
-    errorRate: 1.9,
-    p95LatencyMs: 1280,
-    avgTokens: 846,
-  };
+export async function getDashboardOverview(window: TimeWindow): Promise<DashboardOverview> {
+  return apiClient.request<DashboardOverview>(`/metrics/overview?window=${window}`);
+}
+
+export async function getDashboardUsage(window: TimeWindow): Promise<DashboardUsage> {
+  return apiClient.request<DashboardUsage>(`/metrics/usage?window=${window}`);
+}
+
+export async function getDashboardTrends(window: TimeWindow): Promise<DashboardTrends> {
+  return apiClient.request<DashboardTrends>(`/metrics/trends?window=${window}`);
 }

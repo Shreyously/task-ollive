@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface RedactorRule {
@@ -13,7 +13,10 @@ export class SanitizerService {
   private readonly enabled: boolean;
   private readonly previewMaxLength: number;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    @Inject(ConfigService)
+    private readonly configService: ConfigService,
+  ) {
     this.enabled = this.configService.get<boolean>('worker.redaction.enabled') ?? true;
     this.previewMaxLength = this.configService.get<number>('worker.redaction.previewMaxLength') ?? 1000;
 

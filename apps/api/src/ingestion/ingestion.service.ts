@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { InferenceEventEnvelope } from '@repo/inference-sdk';
 import { INFERENCE_JOB_NAME } from '@repo/shared-types';
 import { Queue } from 'bullmq';
@@ -12,6 +12,7 @@ export class IngestionService {
   constructor(
     @InjectQueue('inference-events')
     private readonly ingestionQueue: Queue,
+    @Inject(AppLogger)
     private readonly logger: AppLogger,
   ) {}
 
@@ -46,5 +47,3 @@ export class IngestionService {
     }
   }
 }
-
-

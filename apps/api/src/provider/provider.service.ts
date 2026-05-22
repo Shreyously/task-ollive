@@ -24,6 +24,7 @@ export class ProviderService {
     private readonly googleProvider: GoogleLlmProvider,
     @Inject(GroqLlmProvider)
     private readonly groqProvider: GroqLlmProvider,
+    @Inject(AppLogger)
     private readonly logger: AppLogger,
   ) {
     this.providersById = {

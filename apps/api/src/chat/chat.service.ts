@@ -27,6 +27,7 @@ export class ChatService {
     private readonly providers: ProviderService,
     @Inject(IngestionService)
     private readonly ingestion: IngestionService,
+    @Inject(AppLogger)
     private readonly logger: AppLogger,
   ) {
     this.observer = new InferenceObserver({

@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: ollive
+  labels:
+    app.kubernetes.io/name: ollive
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  # RollingUpdate: keeps the service alive during deploys.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0   # never take a pod down before a new one is ready
+      maxSurge: 1         # allow 1 extra pod during the update
+  template:
+    metadata:
+      labels:
+        app: api
+        app.kubernetes.io/name: ollive
+        app.kubernetes.io/component: api
+    spec:
+      # Ensure postgres and redis pods are scheduled before the api.
+      # (initContainers are a more robust alternative, but this keeps it simple.)
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "waiting for postgres..."; sleep 2;
+              done
+              echo "postgres is up"
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z redis 6379; do
+                echo "waiting for redis..."; sleep 2;
+              done
+              echo "redis is up"
+      containers:
+        - name: api
+          image: ollive/api:latest
+          # IfNotPresent: uses the locally loaded image (minikube/k3s).
+          # Change to Always when using a remote registry (e.g. Docker Hub / GHCR).
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          # Inject all ConfigMap values as environment variables.
+          envFrom:
+            - configMapRef:
+                name: ollive-config
+            - secretRef:
+                name: ollive-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          # Readiness: pod receives traffic only when this passes.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Liveness: pod is restarted if this fails consecutively.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5

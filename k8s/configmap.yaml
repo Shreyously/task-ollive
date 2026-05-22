@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollive-config
+  namespace: ollive
+  labels:
+    app.kubernetes.io/name: ollive
+data:
+  # ---- Shared ----
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  CORRELATION_ID_HEADER: "x-correlation-id"
+
+  # ---- API ----
+  API_PORT: "3001"
+  API_HOST: "0.0.0.0"
+  # CORS: allow the frontend NodePort URL
+  API_CORS_ORIGIN: "*"
+  # Internal k8s DNS name for the API service (used by worker/frontend within cluster)
+  API_INTERNAL_URL: "http://api:3001"
+
+  # ---- Redis (resolves via ClusterIP Service named "redis") ----
+  REDIS_URL: "redis://redis:6379"
+  REDIS_PORT: "6379"
+
+  # ---- BullMQ / Worker ----
+  INFERENCE_QUEUE_NAME: "inference-events"
+  WORKER_CONCURRENCY: "5"
+  DLQ_NAME: "inference-events-dlq"
+  WORKER_MAX_RETRIES: "4"
+
+  # ---- PII Redaction ----
+  PII_REDACTION_ENABLED: "true"
+  PII_REDACTION_MODE: "store_only"
+
+  # ---- LLM Routing defaults ----
+  DEFAULT_PROVIDER: "google"
+  DEFAULT_MODEL: "gemini-2.0-flash"
+  FALLBACK_PROVIDER: "groq"
+  FALLBACK_MODEL: "llama-3.3-70b-versatile"
+
+  # ---- Frontend (baked into Vite at build time via --build-arg, not runtime) ----
+  # Keep this here for reference; actual injection happens in Dockerfile.frontend.
+  # Frontend: Vite bakes this in at build time — default is /api
+  # Override with --build-arg VITE_API_BASE_URL=... if needed
+  VITE_API_BASE_URL: "/api"

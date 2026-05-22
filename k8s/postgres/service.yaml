@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: ollive
+  labels:
+    app.kubernetes.io/name: ollive
+    app.kubernetes.io/component: postgres
+spec:
+  # ClusterIP: only reachable within the cluster.
+  # The api and worker connect to "postgres:5432" via k8s DNS.
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP

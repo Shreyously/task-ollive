@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prisma-migrate
+  namespace: ollive
+  labels:
+    app.kubernetes.io/name: ollive
+    app.kubernetes.io/component: migrate
+spec:
+  # Never restart the job pod on failure — instead create a new pod (up to backoffLimit).
+  backoffLimit: 3
+  # Clean up the Job (and its pod) after 10 minutes whether it succeeded or failed.
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: prisma-migrate
+        app.kubernetes.io/name: ollive
+        app.kubernetes.io/component: migrate
+    spec:
+      # Jobs must have restartPolicy: Never or OnFailure (not Always).
+      restartPolicy: Never
+      initContainers:
+        # Block until postgres is accepting connections.
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "waiting for postgres..."; sleep 2;
+              done
+              echo "postgres ready"
+      containers:
+        - name: migrate
+          image: ollive/api:latest
+          imagePullPolicy: IfNotPresent
+          # Override the default CMD to only run migrations.
+          command:
+            - npx
+            - prisma
+            - migrate
+            - deploy
+            - --schema
+            - apps/api/prisma/schema.prisma
+          envFrom:
+            - configMapRef:
+                name: ollive-config
+            - secretRef:
+                name: ollive-secrets
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"

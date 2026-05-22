@@ -1,0 +1,50 @@
+# =============================================================================
+# Stage 1 — Builder
+# =============================================================================
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache curl openssl libc6-compat
+
+WORKDIR /workspace
+
+# Copy manifests first so Docker can cache the install layer.
+COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY packages/inference-sdk/package.json ./packages/inference-sdk/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+RUN npm ci
+
+# Copy the full source.
+COPY . .
+
+# Generate Prisma client using the API's schema (worker shares it).
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
+
+# Build shared packages first, then the worker.
+RUN npm run build --workspace @repo/shared-types || true
+RUN npm run build --workspace @repo/inference-sdk || true
+RUN npm run build --workspace @repo/worker
+
+# =============================================================================
+# Stage 2 — Runner
+# =============================================================================
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache curl openssl libc6-compat
+
+WORKDIR /workspace
+
+# Copy only built output and runtime deps.
+COPY --from=builder /workspace/node_modules ./node_modules
+COPY --from=builder /workspace/apps/worker/dist ./apps/worker/dist
+COPY --from=builder /workspace/apps/worker/package.json ./apps/worker/package.json
+COPY --from=builder /workspace/packages ./packages
+COPY --from=builder /workspace/package.json ./package.json
+
+# Worker has no HTTP server — no port to expose.
+# Liveness is checked via exec probe in k8s.
+
+CMD ["node", "apps/worker/dist/src/main.js"]

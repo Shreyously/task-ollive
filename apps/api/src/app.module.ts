@@ -10,6 +10,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
 import { appConfig } from './config/app.config.js';
 import { envValidationSchema } from './config/env.validation.js';
 import { ConversationModule } from './conversation/conversation.module.js';
+import { HealthModule } from './health/health.module.js';
 import { IngestionModule } from './ingestion/ingestion.module.js';
 import { MessageModule } from './message/message.module.js';
 import { MetricsModule } from './metrics/metrics.module.js';
@@ -48,6 +49,7 @@ import { RedisModule } from './redis/redis.module.js';
     ProviderModule,
     MetricsModule,
     IngestionModule,
+    HealthModule,
   ],
   providers: [
     CorrelationIdMiddleware,

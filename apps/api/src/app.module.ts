@@ -5,9 +5,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ChatModule } from './chat/chat.module.js';
-import { AppLogger } from './common/logging/logger.service.js';
+import { LoggerModule } from './common/logging/logger.module.js';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware.js';
-import { RequestContextService } from './common/request-context/request-context.service.js';
 import { appConfig } from './config/app.config.js';
 import { envValidationSchema } from './config/env.validation.js';
 import { ConversationModule } from './conversation/conversation.module.js';
@@ -39,6 +38,7 @@ import { RedisModule } from './redis/redis.module.js';
         ],
       }),
     }),
+    LoggerModule,
     PrismaModule,
     RedisModule,
     QueueModule,
@@ -50,8 +50,6 @@ import { RedisModule } from './redis/redis.module.js';
     IngestionModule,
   ],
   providers: [
-    AppLogger,
-    RequestContextService,
     CorrelationIdMiddleware,
     {
       provide: APP_GUARD,

@@ -129,19 +129,31 @@ export class InferenceProcessor extends WorkerHost {
   @OnWorkerEvent('failed')
   async onFailed(job: Job, error: Error): Promise<void> {
     const correlationId = (job.data as Record<string, unknown> | undefined)?.correlationId as string | undefined;
-    this.logger.pino.error(
-      {
-        jobId: job.id,
-        correlationId,
-        error: error.message,
-        attempt: job.attemptsMade,
-      },
-      'job.failed',
-    );
-
     const maxRetries =
       this.configService.get<number>('worker.queue.maxRetries') ?? 4;
-    if (job.attemptsMade >= maxRetries) {
+
+    if (job.attemptsMade < maxRetries) {
+      this.logger.pino.warn(
+        {
+          jobId: job.id,
+          correlationId,
+          error: error.message,
+          attempt: job.attemptsMade,
+          maxRetries,
+        },
+        'queue.retry',
+      );
+    } else {
+      this.logger.pino.error(
+        {
+          jobId: job.id,
+          correlationId,
+          error: error.message,
+          attempt: job.attemptsMade,
+          maxRetries,
+        },
+        'job.failed',
+      );
       await this.dlqService.moveToDeadLetter(job, error);
     }
   }

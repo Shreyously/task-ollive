@@ -1,16 +1,18 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { InferenceEventEnvelope } from '@repo/inference-sdk';
 import { INFERENCE_JOB_NAME } from '@repo/shared-types';
 import { Queue } from 'bullmq';
 
+import { AppLogger } from '../common/logging/logger.service.js';
+import { serializeError } from '../common/logging/error-serializer.js';
+
 @Injectable()
 export class IngestionService {
-  private readonly logger = new Logger(IngestionService.name);
-
   constructor(
     @InjectQueue('inference-events')
     private readonly ingestionQueue: Queue,
+    private readonly logger: AppLogger,
   ) {}
 
   /**
@@ -28,10 +30,19 @@ export class IngestionService {
         removeOnComplete: { count: 500 },
         removeOnFail: { count: 2000 },
       });
-      this.logger.debug(`Enqueued inference event ${envelope.correlationId}`);
+      this.logger.withContext().debug(
+        { correlationId: envelope.correlationId },
+        'ingestion.enqueued',
+      );
     } catch (err) {
       // Graceful degradation: log and swallow — never crash inference flow
-      this.logger.error(`Failed to enqueue inference event: ${(err as Error).message}`);
+      this.logger.withContext().error(
+        {
+          correlationId: envelope.correlationId,
+          error: serializeError(err),
+        },
+        'ingestion.failed',
+      );
     }
   }
 }

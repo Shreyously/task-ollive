@@ -10,6 +10,8 @@ export interface LLMGenerateRequest {
   maxOutputTokens?: number;
   correlationId?: string;
   disableFallback?: boolean;
+  timeoutMs?: number;
+  abortSignal?: AbortSignal;
 }
 
 export interface LLMUsage {

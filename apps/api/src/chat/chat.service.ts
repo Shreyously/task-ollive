@@ -4,6 +4,8 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { MessageRole } from '@prisma/client';
 import { InferenceObserver } from '@repo/inference-sdk';
 
+import { AppLogger } from '../common/logging/logger.service.js';
+import { serializeError } from '../common/logging/error-serializer.js';
 import { ConversationRepository } from '../conversation/conversation.repository.js';
 import { IngestionService } from '../ingestion/ingestion.service.js';
 import { MessageRepository } from '../message/message.repository.js';
@@ -25,6 +27,7 @@ export class ChatService {
     private readonly providers: ProviderService,
     @Inject(IngestionService)
     private readonly ingestion: IngestionService,
+    private readonly logger: AppLogger,
   ) {
     this.observer = new InferenceObserver({
       onEmit: (envelope) => this.ingestion.enqueue(envelope),
@@ -93,14 +96,15 @@ export class ChatService {
 
     const recent = await this.messages.findRecentByConversation(conversation.id, 12);
     const prompt = this.buildPromptFromRecentMessages(recent);
-    // Temporary runtime trace for model/provider selection visibility.
-    // Uses console log intentionally per request to simplify local debugging.
-    console.log('[chat.stream.request]', {
+    
+    this.logger.withContext().info({
+      streamId,
       conversationId: conversation.id,
       sessionId: dto.sessionId,
       model: dto.model,
       fallbackEnabled: !dto.disableFallback,
-    });
+    }, 'stream.started');
+
     const stream = await this.observer.wrapStream(
       {
         conversationId: conversation.id,
@@ -114,6 +118,7 @@ export class ChatService {
         model: dto.model,
         prompt,
         disableFallback: dto.disableFallback,
+        correlationId: streamId,
       }),
     );
 
@@ -123,6 +128,10 @@ export class ChatService {
       for await (const chunk of stream) {
         if (this.canceledStreams.has(streamId)) {
           onEvent({ event: 'canceled', data: { streamId } });
+          this.logger.withContext().warn({
+            streamId,
+            conversationId: conversation.id,
+          }, 'stream.canceled');
           return;
         }
         accumulatedText += chunk;
@@ -146,6 +155,13 @@ export class ChatService {
           assistantMessage,
         },
       });
+
+      this.logger.withContext().info({
+        streamId,
+        conversationId: conversation.id,
+        assistantMessageId: assistantMessage.id,
+        tokenCountEstimated: Math.ceil(assistantText.length / 4),
+      }, 'stream.completed');
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
@@ -153,6 +169,12 @@ export class ChatService {
           : typeof error === 'object' && error !== null && 'message' in error
             ? String((error).message)
             : 'Streaming failed';
+
+      this.logger.withContext().error({
+        streamId,
+        conversationId: conversation.id,
+        error: serializeError(error),
+      }, 'stream.error');
 
       // If we accumulated some text before the error, still save it
       if (accumulatedText.trim().length) {

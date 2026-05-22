@@ -18,12 +18,19 @@ export class GroqLlmProvider implements LLMProvider {
 
   async generate(request: LLMGenerateRequest): Promise<LLMProviderResult> {
     const startedAt = Date.now();
+    const timeoutMs = request.timeoutMs ?? 10000;
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const abortSignal = request.abortSignal
+      ? AbortSignal.any([request.abortSignal, timeoutSignal])
+      : timeoutSignal;
+
     try {
       const result = await generateText({
         model: groq(request.model),
         prompt: request.prompt,
         temperature: request.temperature,
         maxTokens: request.maxOutputTokens,
+        abortSignal,
       });
 
       return {
@@ -41,11 +48,18 @@ export class GroqLlmProvider implements LLMProvider {
 
   stream(request: LLMGenerateRequest): Promise<AsyncIterable<string>> {
     try {
+      const timeoutMs = request.timeoutMs ?? 10000;
+      const timeoutSignal = AbortSignal.timeout(timeoutMs);
+      const abortSignal = request.abortSignal
+        ? AbortSignal.any([request.abortSignal, timeoutSignal])
+        : timeoutSignal;
+
       const result = streamText({
         model: groq(request.model),
         prompt: request.prompt,
         temperature: request.temperature,
         maxTokens: request.maxOutputTokens,
+        abortSignal,
       });
 
       // Use fullStream instead of textStream because textStream silently

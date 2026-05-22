@@ -26,6 +26,7 @@ export class ProviderError extends Error {
 
 export function normalizeProviderError(error: unknown, provider: ProviderId, model: ModelId): ProviderError {
   const err = error as {
+    name?: string;
     message?: string;
     code?: string;
     statusCode?: number;
@@ -34,8 +35,13 @@ export function normalizeProviderError(error: unknown, provider: ProviderId, mod
   };
 
   const statusCode = err.statusCode ?? err.status;
-  const code = typeof err.code === 'string' ? err.code : undefined;
-  const message = err.message ?? 'Provider call failed';
+  let code = typeof err.code === 'string' ? err.code : undefined;
+  let message = err.message ?? 'Provider call failed';
+
+  if (err.name === 'TimeoutError' || message.toLowerCase().includes('timeout') || err.name === 'AbortError' || message.toLowerCase().includes('aborted')) {
+    code = 'ETIMEDOUT';
+    message = `Provider request timed out or was aborted: ${message}`;
+  }
 
   return new ProviderError(message, provider, model, code, statusCode);
 }

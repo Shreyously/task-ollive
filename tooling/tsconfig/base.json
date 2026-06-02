@@ -17,11 +17,9 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-    "ignoreDeprecations": "5.0",
-    "baseUrl": ".",
     "paths": {
-      "@repo/shared-types/*": ["packages/shared-types/src/*"],
-      "@repo/inference-sdk/*": ["packages/inference-sdk/src/*"]
+      "@repo/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@repo/inference-sdk/*": ["../../packages/inference-sdk/src/*"]
     }
   }
 }

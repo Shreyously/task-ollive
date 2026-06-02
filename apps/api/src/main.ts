@@ -33,7 +33,7 @@ export async function bootstrap(): Promise<void> {
     credentials: false,
   });
 
-  const port = configService.get<number>('app.api.port') ?? 3001;
+  const port = Number(process.env.PORT ?? configService.get<number>('app.api.port') ?? 3001);
   const host = configService.get<string>('app.api.host') ?? '0.0.0.0';
 
   await app.listen(port, host);

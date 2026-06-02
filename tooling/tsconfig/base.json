@@ -17,6 +17,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
+    "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "paths": {
       "@repo/shared-types/*": ["packages/shared-types/src/*"],
@@ -24,4 +25,3 @@
     }
   }
 }
-

@@ -29,6 +29,7 @@ import { RedisModule } from './redis/redis.module.js';
             port: Number(parsed.port || 6379),
             username: parsed.username || undefined,
             password: parsed.password || undefined,
+            tls: parsed.protocol === 'rediss:' ? {} : undefined,
           },
         };
       },
